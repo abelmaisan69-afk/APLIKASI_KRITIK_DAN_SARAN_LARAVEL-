@@ -29,4 +29,10 @@ class Review extends Model
     {
         return $this->hasOne(ReviewReply::class);
     }
+
+    // Ulasan yang tampil di publik (tidak disembunyikan)
+public function scopeTampil($query)
+{
+    return $query->where('status', '!=', 'disembunyikan');
+}
 }

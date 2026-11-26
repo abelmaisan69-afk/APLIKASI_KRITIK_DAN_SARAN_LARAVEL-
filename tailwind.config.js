@@ -12,7 +12,7 @@ export default {
     theme: {
     extend: {
         fontFamily: {
-            sans: ['Poppins', 'sans-serif'],
+             sans: ['Inter', 'sans-serif'],
         },
         colors: {
             primary: 'rgb(var(--c-primary) / <alpha-value>)',

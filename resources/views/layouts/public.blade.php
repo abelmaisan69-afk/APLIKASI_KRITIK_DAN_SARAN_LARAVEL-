@@ -40,6 +40,54 @@
         .stars input:checked ~ label,
         .stars label:hover,
         .stars label:hover ~ label { color: rgb(var(--c-accent)); }
+
+        /* ===== Menu mobile ===== */
+#nav-mobile {
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition: grid-template-rows .35s ease, visibility .35s;
+}
+#nav-mobile.is-open {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    box-shadow: 0 12px 24px rgb(0 0 0 / .08);
+}
+#nav-mobile a {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity .25s ease, transform .25s ease;
+}
+#nav-mobile.is-open a {
+    opacity: 1;
+    transform: none;
+    transition-delay: calc(var(--i) * 45ms + 100ms);
+}
+
+#nav-overlay {
+    position: fixed;
+    inset: 4rem 0 0 0;
+    z-index: 30;
+    background: rgb(0 0 0 / .4);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s ease, visibility .3s;
+}
+#nav-overlay.is-open { opacity: 1; visibility: visible; }
+
+/* ikon hamburger -> X */
+.burger span {
+    display: block; height: 2px; width: 20px; border-radius: 2px;
+    background: currentColor;
+    transition: transform .3s ease, opacity .2s ease;
+}
+.burger.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.burger.is-open span:nth-child(2) { opacity: 0; }
+.burger.is-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+    #nav-mobile, #nav-mobile a, #nav-overlay, .burger span { transition: none !important; }
+}
+
     </style>
 </head>
 <body class="bg-paper text-ink font-sans min-h-screen flex flex-col" style="{{ $bgStyle }}">
@@ -61,17 +109,28 @@
                 <a href="{{ route('review.create') }}" class="bg-primary text-white px-4 py-2 rounded-xl font-medium hover:opacity-90 transition">Berikan Ulasan</a>
             </nav>
 
-            <button id="nav-toggle" type="button" aria-label="Menu"
-                    class="md:hidden border border-slate-200 rounded-lg px-3 py-1.5 text-sm">☰</button>
+            <button id="nav-toggle" type="button" aria-label="Menu" aria-controls="nav-mobile" aria-expanded="false"
+        class="burger md:hidden flex h-10 w-10 flex-col items-center justify-center gap-[5px]
+               rounded-lg border border-slate-200 text-ink">
+    <span></span><span></span><span></span>
+</button>
         </div>
 
-        <div id="nav-mobile" class="hidden md:hidden border-t border-slate-100 px-4 py-3 space-y-1 text-sm bg-white">
+        <div id="nav-mobile" class="grid md:hidden absolute inset-x-0 top-full bg-white border-t border-slate-100">
+    <div class="overflow-hidden">
+        <div class="px-4 py-3 space-y-1 text-sm">
             @foreach ($links as [$label, $href, $aktif])
-                <a href="{{ $href }}" class="block py-2 {{ $aktif ? 'text-primary font-semibold' : 'text-slate-600' }}">{{ $label }}</a>
+                <a href="{{ $href }}" style="--i: {{ $loop->index }}"
+                   class="block py-2.5 {{ $aktif ? 'text-primary font-semibold' : 'text-slate-600' }}">{{ $label }}</a>
             @endforeach
-            <a href="{{ route('review.create') }}" class="block text-center bg-primary text-white py-2.5 rounded-xl font-medium">Berikan Ulasan</a>
+            <a href="{{ route('review.create') }}" style="--i: {{ count($links) }}"
+               class="block text-center bg-primary text-white py-2.5 rounded-xl font-medium mt-2">Berikan Ulasan</a>
         </div>
+    </div>
+</div>
     </header>
+
+    <div id="nav-overlay" class="md:hidden"></div>
 
     @hasSection('raw')
     <div class="flex-1">@yield('raw')</div>
@@ -113,11 +172,24 @@
         </div>
     </footer>
 
-    <script>
-        document.getElementById('nav-toggle').addEventListener('click', () => {
-            document.getElementById('nav-mobile').classList.toggle('hidden');
-        });
-    </script>
+    
+      <script>
+    const navBtn     = document.getElementById('nav-toggle');
+    const navPanel   = document.getElementById('nav-mobile');
+    const navOverlay = document.getElementById('nav-overlay');
+
+    function setNav(buka) {
+        [navBtn, navPanel, navOverlay].forEach(e => e.classList.toggle('is-open', buka));
+        navBtn.setAttribute('aria-expanded', buka);
+        document.body.classList.toggle('overflow-hidden', buka);
+    }
+
+    navBtn.addEventListener('click', () => setNav(!navPanel.classList.contains('is-open')));
+    navOverlay.addEventListener('click', () => setNav(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setNav(false); });
+    navPanel.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setNav(false)));
+    window.matchMedia('(min-width: 768px)').addEventListener('change', e => { if (e.matches) setNav(false); });
+</script>
     @stack('scripts')
 </body>
 </html>

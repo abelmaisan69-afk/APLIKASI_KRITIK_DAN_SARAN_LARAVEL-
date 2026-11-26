@@ -3,82 +3,63 @@
 @section('title', 'Dashboard')
 
 @section('content')
-{{-- Kartu statistik --}}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    @foreach ([
-        ['Total Ulasan', $stats['total']],
-        ['Rata-rata Rating', $stats['rata'] . ' ★'],
-        ['Rating 5 Bintang', $stats['lima']],
-        ['Belum Dibalas', $stats['belum']],
-    ] as [$label, $nilai])
-        <div class="bg-white rounded-2xl shadow-sm p-5">
-            <p class="text-sm text-slate-500">{{ $label }}</p>
-            <p class="text-3xl font-semibold text-primary mt-1">{{ $nilai }}</p>
-        </div>
+{{-- Filter periode --}}
+<div class="flex flex-wrap items-center gap-2 mb-6">
+    <span class="text-sm text-slate-500 mr-1">Periode grafik:</span>
+    @foreach ($opsi as $kunci => $label)
+        <a href="{{ route('dashboard', ['periode' => $kunci]) }}"
+           class="px-4 py-1.5 rounded-full text-sm transition
+                  {{ $periode === $kunci ? 'bg-primary text-white' : 'bg-white border border-slate-200 hover:border-slate-400' }}">
+            {{ $label }}
+        </a>
     @endforeach
 </div>
 
+{{-- Kartu statistik --}}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+        <p class="text-sm text-slate-500">Total Ulasan</p>
+        <p class="text-3xl font-semibold text-primary mt-1">{{ $stats['total'] }}</p>
+        <p class="text-xs text-slate-400 mt-1">{{ $stats['periode'] }} pada periode ini</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+        <p class="text-sm text-slate-500">Rata-rata Rating</p>
+        <p class="text-3xl font-semibold text-primary mt-1">{{ $stats['rata'] }} <span class="text-accent">★</span></p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+        <p class="text-sm text-slate-500">Rating 5 Bintang</p>
+        <p class="text-3xl font-semibold text-primary mt-1">{{ $stats['lima'] }}</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+        <p class="text-sm text-slate-500">Belum Dibalas</p>
+        <p class="text-3xl font-semibold text-primary mt-1">{{ $stats['belum'] }}</p>
+    </div>
+</div>
+
 {{-- Grafik --}}
+<div id="dash-data" data-chart="{{ json_encode($grafik) }}" class="hidden"></div>
+
 <div class="grid lg:grid-cols-2 gap-6 mb-6">
     <div class="bg-white rounded-2xl shadow-sm p-5">
-        <h2 class="font-semibold mb-4">Jumlah Ulasan per Bulan</h2>
-        <div class="flex items-end gap-3 h-40">
-            @foreach ($bulan as $b)
-                <div class="flex-1 h-full flex flex-col justify-end items-center">
-                    <span class="text-xs text-slate-500 mb-1">{{ $b['jumlah'] }}</span>
-                    <div class="w-full bg-primary rounded-t-lg"
-                         style="height: {{ max(2, round($b['jumlah'] / $maxJumlah * 85)) }}%"></div>
-                </div>
-            @endforeach
-        </div>
-        <div class="flex gap-3 mt-2">
-            @foreach ($bulan as $b)
-                <span class="flex-1 text-center text-xs text-slate-500">{{ $b['label'] }}</span>
-            @endforeach
-        </div>
+        <h2 class="font-semibold mb-4">Jumlah Ulasan</h2>
+        <div class="relative h-64"><canvas id="chart-jumlah"></canvas></div>
     </div>
-
     <div class="bg-white rounded-2xl shadow-sm p-5">
         <h2 class="font-semibold mb-4">Perkembangan Rata-rata Rating</h2>
-        <div class="flex items-end gap-3 h-40">
-            @foreach ($bulan as $b)
-                <div class="flex-1 h-full flex flex-col justify-end items-center">
-                    <span class="text-xs text-slate-500 mb-1">{{ $b['rata'] ?: '-' }}</span>
-                    <div class="w-full bg-accent rounded-t-lg"
-                         style="height: {{ $b['rata'] ? max(2, round($b['rata'] / 5 * 85)) : 2 }}%"></div>
-                </div>
-            @endforeach
-        </div>
-        <div class="flex gap-3 mt-2">
-            @foreach ($bulan as $b)
-                <span class="flex-1 text-center text-xs text-slate-500">{{ $b['label'] }}</span>
-            @endforeach
-        </div>
+        <div class="relative h-64"><canvas id="chart-rata"></canvas></div>
     </div>
 </div>
 
 <div class="grid lg:grid-cols-3 gap-6">
-    {{-- Distribusi bintang --}}
     <div class="bg-white rounded-2xl shadow-sm p-5">
         <h2 class="font-semibold mb-4">Distribusi Bintang</h2>
-        <div class="space-y-2">
-            @for ($i = 5; $i >= 1; $i--)
-                @php
-                    $jml = $dist[$i] ?? 0;
-                    $persen = $stats['total'] > 0 ? round($jml / $stats['total'] * 100) : 0;
-                @endphp
-                <div class="flex items-center gap-3 text-sm">
-                    <span class="w-8 shrink-0">{{ $i }} ★</span>
-                    <div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-accent rounded-full" style="width: {{ $persen }}%"></div>
-                    </div>
-                    <span class="w-8 shrink-0 text-right text-slate-500">{{ $jml }}</span>
-                </div>
-            @endfor
-        </div>
+        @if ($stats['total'] > 0)
+            <div class="relative h-64"><canvas id="chart-dist"></canvas></div>
+        @else
+            <p class="text-sm text-slate-500">Belum ada ulasan.</p>
+        @endif
     </div>
 
-    {{-- Ulasan terbaru --}}
     <div class="bg-white rounded-2xl shadow-sm p-5">
         <div class="flex justify-between items-center mb-4">
             <h2 class="font-semibold">Ulasan Terbaru</h2>
@@ -98,7 +79,6 @@
         </div>
     </div>
 
-    {{-- Aktivitas --}}
     <div class="bg-white rounded-2xl shadow-sm p-5">
         <h2 class="font-semibold mb-4">Aktivitas Terbaru</h2>
         <ul class="space-y-3">
@@ -113,4 +93,6 @@
         </ul>
     </div>
 </div>
+
+@vite('resources/js/dashboard.js')
 @endsection
